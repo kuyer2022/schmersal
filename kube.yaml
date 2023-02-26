@@ -1,0 +1,59 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {AppName}
+  namespace: {SchmersalNamespace}
+  labels:
+    app: {AppName}
+spec:
+  replicas: {NumberOfReplicas}
+  progressDeadlineSeconds: {ProgressDeadlineSeconds}
+  selector:
+    matchLabels:
+      app: {AppName}
+  template:
+    metadata:
+      labels:
+        app: {AppName}
+    spec:
+      containers:
+        - name:  {ContainerName}
+          image: {AcrName}/{AppName}:{Build.BuildId}
+          ports:
+          - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 80
+          resources:
+              requests:
+                memory: "256Mi"
+                cpu: "75m"
+              limits:
+                memory: "512Mi"
+                cpu: "150m"
+          volumeMounts:
+          - name: config
+            mountPath: /app/config
+            readOnly: true
+      volumes:
+      - name: config
+        secret:
+          secretName: {ConfigSecretName}-config-appsettings
+      imagePullSecrets:
+        - name: acr-secret                
+      
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {ServiceName}
+  namespace: {SchmersalNamespace}
+spec:
+  selector:
+    app: {AppName}
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+  type: ClusterIP
